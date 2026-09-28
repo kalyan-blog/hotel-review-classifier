@@ -21,18 +21,28 @@ DATA_DIR = os.path.join(BACKEND_DIR, "data")
 DEFAULT_SQLITE_PATH = os.path.join(DATA_DIR, "hotel_reviews.db")
 CSV_DATASET_PATH = os.path.join(DATA_DIR, "hotel_reviews.csv")
 
-# Ensure backend/data/ directory exists automatically
-os.makedirs(DATA_DIR, exist_ok=True)
+# Ensure backend/data/ directory exists automatically if writable
+try:
+    os.makedirs(DATA_DIR, exist_ok=True)
+except OSError:
+    pass
+
+
+import tempfile
 
 
 def resolve_database_url() -> str:
     """
     Resolves the database connection string.
     Uses DATABASE_URL if set in environment (e.g. PostgreSQL in production).
-    Defaults to SQLite at backend/data/hotel_reviews.db for local development.
+    Defaults to SQLite at tempfile.gettempdir() on Vercel serverless,
+    or backend/data/hotel_reviews.db for local development.
     """
     raw_url = os.getenv("DATABASE_URL")
     if not raw_url:
+        if os.getenv("VERCEL"):
+            tmp_db = os.path.join(tempfile.gettempdir(), "hotel_reviews.db").replace("\\", "/")
+            return f"sqlite:///{tmp_db}"
         # SQLite local path formatted for SQLAlchemy
         norm_path = DEFAULT_SQLITE_PATH.replace("\\", "/")
         return f"sqlite:///{norm_path}"
