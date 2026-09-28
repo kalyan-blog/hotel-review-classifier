@@ -1,13 +1,13 @@
 export interface ReviewItem {
   id: string | number;
   review: string;
-  sentiment: 'Positive' | 'Negative';
+  sentiment: 'Positive' | 'Negative' | 'Neutral';
   confidence: number;
   date?: string;
 }
 
 export interface ClassificationDisplayResult {
-  sentiment: 'Positive' | 'Negative';
+  sentiment: 'Positive' | 'Negative' | 'Neutral';
   confidence: number;
   explanation: string;
   wordCount: number;
@@ -17,6 +17,7 @@ export const QUICK_EXAMPLES = {
   positive: 'The hotel was excellent. The room was clean and comfortable, and the staff were very friendly.',
   negative: 'The room was dirty and noisy. The staff were rude and the service was terrible.',
   neutral: 'The hotel is located near the city center. The room was average and the breakfast was available.',
+  mixed: 'felt better in the food taste but the service provided by the server is not satisfied but I got what I ordered without fail and got at the time but the server attitude is not liked by me, the receptionist responded very well at anytime.',
 };
 
 export const INITIAL_FALLBACK_STATS = {

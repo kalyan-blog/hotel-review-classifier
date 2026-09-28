@@ -6,9 +6,10 @@ Supports SQLite for local development and PostgreSQL for production via DATABASE
 """
 import os
 import csv
+import json
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Generator
-from sqlalchemy import create_engine, Column, Integer, String, Float, Text, DateTime
+from sqlalchemy import create_engine, Column, Integer, String, Float, Text, DateTime, text
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from dotenv import load_dotenv
 
@@ -85,16 +86,24 @@ class ReviewClassification(Base):
     review_text = Column(Text, nullable=False)
     sentiment = Column(String(50), nullable=False)
     confidence = Column(Float, nullable=False)
+    aspects_json = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        data = {
             "id": self.id,
             "review": self.review_text,
             "sentiment": self.sentiment,
             "confidence": self.confidence,
             "created_at": self.created_at.isoformat() if self.created_at else datetime.utcnow().isoformat(),
         }
+        if self.aspects_json:
+            try:
+                aspects_meta = json.loads(self.aspects_json)
+                data.update(aspects_meta)
+            except Exception:
+                pass
+        return data
 
 
 class HotelReview(Base):
@@ -153,6 +162,14 @@ def init_database() -> None:
         # Create all tables (SQLAlchemy issues CREATE TABLE IF NOT EXISTS)
         Base.metadata.create_all(bind=engine)
 
+        # Ensure aspects_json column exists on review_classifications table if created earlier
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE review_classifications ADD COLUMN aspects_json TEXT"))
+                conn.commit()
+        except Exception:
+            pass
+
         # Check whether seed data already exists before inserting it
         db = SessionLocal()
         try:
@@ -193,6 +210,7 @@ def insert_classification(
     review_text: str,
     sentiment: str,
     confidence: float,
+    aspects_data: Optional[Dict[str, Any]] = None,
     db: Optional[Session] = None,
 ) -> ReviewClassification:
     """
@@ -204,10 +222,12 @@ def insert_classification(
         close_when_done = True
 
     try:
+        aspects_json_str = json.dumps(aspects_data) if aspects_data else None
         record = ReviewClassification(
             review_text=review_text.strip(),
             sentiment=sentiment.strip().capitalize(),
             confidence=round(float(confidence), 1),
+            aspects_json=aspects_json_str,
             created_at=datetime.utcnow(),
         )
         db.add(record)

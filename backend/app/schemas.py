@@ -16,11 +16,25 @@ class ReviewClassifyRequest(BaseModel):
     )
 
 
+class AspectItem(BaseModel):
+    aspect: str
+    sentiment: str
+    evidence: str
+
+
 class ReviewClassifyResponse(BaseModel):
     id: int
     review: str
     sentiment: str
     confidence: float
+    summary: Optional[str] = None
+    aspects: List[AspectItem] = Field(default_factory=list)
+    positive_aspects: List[str] = Field(default_factory=list)
+    negative_aspects: List[str] = Field(default_factory=list)
+    neutral_aspects: List[str] = Field(default_factory=list)
+    positive_feedback: List[str] = Field(default_factory=list)
+    negative_feedback: List[str] = Field(default_factory=list)
+    management_insight: Optional[str] = None
     created_at: str
 
     class Config:

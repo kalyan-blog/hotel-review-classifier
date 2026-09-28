@@ -35,6 +35,7 @@ from app.schemas import (
     RatingDistributionResponse,
 )
 from app.services.classifier import load_model, classify_review
+from app.services.aspect_analyzer import analyze_hotel_review_aspects
 from app.services.statistics import get_rating_distribution
 
 # Automatically initialize database schema and load ML pipeline ONCE during module cold start
@@ -103,11 +104,15 @@ def classify_and_save_review(
         # 1. Run ML model inference
         result = classify_review(review_text)
 
-        # 2. Save classification record through database.py
+        # 2. Run aspect-based analysis
+        aspect_data = analyze_hotel_review_aspects(review_text, result["sentiment"])
+
+        # 3. Save classification record through database.py
         saved_record = insert_classification(
             review_text=review_text,
             sentiment=result["sentiment"],
             confidence=result["confidence"],
+            aspects_data=aspect_data,
             db=db,
         )
 
@@ -116,6 +121,14 @@ def classify_and_save_review(
             "review": saved_record.review_text,
             "sentiment": saved_record.sentiment,
             "confidence": saved_record.confidence,
+            "summary": aspect_data.get("summary"),
+            "aspects": aspect_data.get("aspects", []),
+            "positive_aspects": aspect_data.get("positive_aspects", []),
+            "negative_aspects": aspect_data.get("negative_aspects", []),
+            "neutral_aspects": aspect_data.get("neutral_aspects", []),
+            "positive_feedback": aspect_data.get("positive_feedback", []),
+            "negative_feedback": aspect_data.get("negative_feedback", []),
+            "management_insight": aspect_data.get("management_insight"),
             "created_at": saved_record.created_at.isoformat(),
         }
     except Exception as e:

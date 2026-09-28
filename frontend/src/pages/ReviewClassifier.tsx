@@ -7,13 +7,18 @@ import {
   FileText, 
   HelpCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  Info,
+  Lightbulb,
+  Layers
 } from 'lucide-react';
 import { 
   QUICK_EXAMPLES, 
   type ReviewItem 
 } from '../data/reviewData';
-import { classifyReview, type ClassifiedReview } from '../services/api';
+import { classifyReview, type ClassifiedReview, type AspectItem } from '../services/api';
 
 interface ReviewClassifierProps {
   onAddRecentReview: (item: ReviewItem) => void;
@@ -30,7 +35,7 @@ export const ReviewClassifier: React.FC<ReviewClassifierProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [activeExample, setActiveExample] = useState<string | null>(null);
 
-  const handleSetExample = (key: 'positive' | 'negative' | 'neutral') => {
+  const handleSetExample = (key: 'positive' | 'negative' | 'neutral' | 'mixed') => {
     setActiveExample(key);
     const text = QUICK_EXAMPLES[key];
     setReviewText(text);
@@ -171,6 +176,17 @@ export const ReviewClassifier: React.FC<ReviewClassifierProps> = ({
             >
               Neutral Example
             </button>
+            <button
+              type="button"
+              onClick={() => handleSetExample('mixed')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                activeExample === 'mixed'
+                  ? 'bg-purple-50 text-purple-700 border-purple-300 shadow-sm font-semibold'
+                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              Mixed Example (Aspect Demo)
+            </button>
           </div>
         </div>
 
@@ -280,18 +296,227 @@ export const ReviewClassifier: React.FC<ReviewClassifierProps> = ({
           </div>
 
           {/* Explanation Text */}
-          <p className="mt-4 text-xs sm:text-sm text-slate-700 bg-white/80 p-3 rounded-lg border border-slate-200/80 leading-relaxed">
-            <strong className="text-slate-900">Analysis Explanation: </strong>
-            {isPositive
-              ? 'Positive sentiment detected based on the overall wording of the review.'
-              : 'Negative sentiment detected based on critical and unfavorable feedback terms in the review.'}
-          </p>
+          <div className="mt-4 text-xs sm:text-sm text-slate-700 bg-white/80 p-3.5 rounded-lg border border-slate-200/80 leading-relaxed space-y-1">
+            <span className="font-bold text-slate-900 block">Analysis Explanation:</span>
+            <p className="text-slate-800">
+              {result.summary || (isPositive
+                ? 'Positive sentiment detected based on the overall wording of the review.'
+                : 'Negative sentiment detected based on critical and unfavorable feedback terms in the review.')}
+            </p>
+          </div>
 
           <div className="mt-3 pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px] text-slate-500">
             <span>Model: <strong>TF-IDF + Logistic Regression</strong></span>
             <span>Recorded to Database: <strong>Saved (ID #{result.id})</strong></span>
           </div>
 
+        </div>
+      )}
+
+      {/* Detailed Feedback Analysis Section */}
+      {result && result.aspects && result.aspects.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 p-5 sm:p-7 shadow-card space-y-6 animate-fadeIn">
+          {/* Section Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
+            <div>
+              <div className="flex items-center gap-2">
+                <Layers className="w-5 h-5 text-blue-600" />
+                <h3 className="text-lg font-bold text-slate-900 tracking-tight">
+                  Detailed Feedback Analysis
+                </h3>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                Aspect-level sentiment breakdown and customer evidence extracted from the review.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
+                {result.aspects.filter((a: AspectItem) => a.sentiment === 'Positive').length} Positive
+              </span>
+              <span className="text-xs px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-semibold">
+                {result.aspects.filter((a: AspectItem) => a.sentiment === 'Negative').length} Negative
+              </span>
+              {result.aspects.filter((a: AspectItem) => a.sentiment === 'Neutral').length > 0 && (
+                <span className="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-semibold">
+                  {result.aspects.filter((a: AspectItem) => a.sentiment === 'Neutral').length} Neutral
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* 1. Overall Summary */}
+          {result.summary && (
+            <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 space-y-1.5">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                <FileText className="w-4 h-4 text-blue-600" />
+                <span>Overall Summary</span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-800 leading-relaxed font-medium">
+                {result.summary}
+              </p>
+            </div>
+          )}
+
+          {/* 2 & 3. Positive & Negative Aspects Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Positive Aspects */}
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/20 p-4 sm:p-5 space-y-4 flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-emerald-200/60">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <h4 className="text-sm font-bold text-emerald-900">Positive Aspects</h4>
+                  </div>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                    {result.aspects.filter((a: AspectItem) => a.sentiment === 'Positive').length}
+                  </span>
+                </div>
+
+                {/* Aspect Cards with Evidence */}
+                <div className="space-y-2.5">
+                  {result.aspects.filter((a: AspectItem) => a.sentiment === 'Positive').length === 0 ? (
+                    <p className="text-xs text-slate-500 italic py-2">No specific positive aspects identified.</p>
+                  ) : (
+                    result.aspects
+                      .filter((a: AspectItem) => a.sentiment === 'Positive')
+                      .map((item: AspectItem, idx: number) => (
+                        <div key={idx} className="bg-white rounded-lg p-3 border border-emerald-100 shadow-xs space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-900">{item.aspect}</span>
+                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold border border-emerald-200">
+                              Positive
+                            </span>
+                          </div>
+                          <div className="text-xs text-slate-600 flex items-start gap-1.5">
+                            <span className="font-semibold text-slate-500 shrink-0">Evidence:</span>
+                            <span className="italic text-slate-700 font-serif">"{item.evidence}"</span>
+                          </div>
+                        </div>
+                      ))
+                  )}
+                </div>
+              </div>
+
+              {/* Positive Feedback Bullets */}
+              {result.positive_feedback && result.positive_feedback.length > 0 && (
+                <div className="pt-3 border-t border-emerald-200/60 space-y-1.5">
+                  <span className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider block">
+                    Positive Feedback:
+                  </span>
+                  <ul className="space-y-1 text-xs text-emerald-950">
+                    {result.positive_feedback.map((fb: string, idx: number) => (
+                      <li key={idx} className="flex items-start gap-1.5">
+                        <span className="text-emerald-600 font-bold leading-none shrink-0">✓</span>
+                        <span className="leading-snug">{fb}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {/* Negative Aspects */}
+            <div className="rounded-xl border border-rose-200 bg-rose-50/20 p-4 sm:p-5 space-y-4 flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-rose-200/60">
+                  <div className="flex items-center gap-2">
+                    <XCircle className="w-4 h-4 text-rose-600" />
+                    <h4 className="text-sm font-bold text-rose-900">Negative Aspects</h4>
+                  </div>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800">
+                    {result.aspects.filter((a: AspectItem) => a.sentiment === 'Negative').length}
+                  </span>
+                </div>
+
+                {/* Aspect Cards with Evidence */}
+                <div className="space-y-2.5">
+                  {result.aspects.filter((a: AspectItem) => a.sentiment === 'Negative').length === 0 ? (
+                    <p className="text-xs text-slate-500 italic py-2">No specific negative aspects identified.</p>
+                  ) : (
+                    result.aspects
+                      .filter((a: AspectItem) => a.sentiment === 'Negative')
+                      .map((item: AspectItem, idx: number) => (
+                        <div key={idx} className="bg-white rounded-lg p-3 border border-rose-100 shadow-xs space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-900">{item.aspect}</span>
+                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-semibold border border-rose-200">
+                              Negative
+                            </span>
+                          </div>
+                          <div className="text-xs text-slate-600 flex items-start gap-1.5">
+                            <span className="font-semibold text-slate-500 shrink-0">Evidence:</span>
+                            <span className="italic text-slate-700 font-serif">"{item.evidence}"</span>
+                          </div>
+                        </div>
+                      ))
+                  )}
+                </div>
+              </div>
+
+              {/* Negative Feedback Bullets */}
+              {result.negative_feedback && result.negative_feedback.length > 0 && (
+                <div className="pt-3 border-t border-rose-200/60 space-y-1.5">
+                  <span className="text-[11px] font-bold text-rose-900 uppercase tracking-wider block">
+                    Negative Feedback:
+                  </span>
+                  <ul className="space-y-1 text-xs text-rose-950">
+                    {result.negative_feedback.map((fb: string, idx: number) => (
+                      <li key={idx} className="flex items-start gap-1.5">
+                        <span className="text-rose-600 font-bold leading-none shrink-0">✗</span>
+                        <span className="leading-snug">{fb}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 4. Neutral Aspects (Only when applicable) */}
+          {result.aspects.some((a: AspectItem) => a.sentiment === 'Neutral') && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 sm:p-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <Info className="w-4 h-4 text-slate-600" />
+                <h4 className="text-sm font-bold text-slate-900">Neutral Aspects</h4>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {result.aspects
+                  .filter((a: AspectItem) => a.sentiment === 'Neutral')
+                  .map((item: AspectItem, idx: number) => (
+                    <div key={idx} className="bg-white rounded-lg p-3 border border-slate-200 shadow-xs space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900">{item.aspect}</span>
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-semibold border border-slate-200">
+                          Neutral
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-600 flex items-start gap-1.5">
+                        <span className="font-semibold text-slate-500 shrink-0">Evidence:</span>
+                        <span className="italic text-slate-700 font-serif">"{item.evidence}"</span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* 5. Hotel Management Insight */}
+          {result.management_insight && (
+            <div className="rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50/60 to-indigo-50/60 p-4 sm:p-5 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                  <Lightbulb className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">Hotel Management Insight</h4>
+                  <span className="text-[11px] text-slate-500 block">Actionable takeaways based on customer-stated aspects</span>
+                </div>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-800 leading-relaxed pl-9">
+                {result.management_insight}
+              </p>
+            </div>
+          )}
         </div>
       )}
 

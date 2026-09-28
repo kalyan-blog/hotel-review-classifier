@@ -26,11 +26,25 @@ const apiClient = axios.create({
   timeout: 15000,
 });
 
+export interface AspectItem {
+  aspect: string;
+  sentiment: 'Positive' | 'Negative' | 'Neutral';
+  evidence: string;
+}
+
 export interface ClassifiedReview {
   id: number;
   review: string;
-  sentiment: 'Positive' | 'Negative';
+  sentiment: 'Positive' | 'Negative' | 'Neutral';
   confidence: number;
+  summary?: string;
+  aspects?: AspectItem[];
+  positive_aspects?: string[];
+  negative_aspects?: string[];
+  neutral_aspects?: string[];
+  positive_feedback?: string[];
+  negative_feedback?: string[];
+  management_insight?: string;
   created_at: string;
 }
 

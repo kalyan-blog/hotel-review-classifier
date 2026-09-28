@@ -12,6 +12,7 @@ class ReviewClassification(Base):
     review_text = Column(Text, nullable=False)
     sentiment = Column(String(50), nullable=False)
     confidence = Column(Float, nullable=False)
+    aspects_json = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 

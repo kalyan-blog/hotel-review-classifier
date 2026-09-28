@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas import ReviewClassifyRequest, ReviewClassifyResponse, RecentReviewResponse
 from app.services.classifier import classify_review
+from app.services.aspect_analyzer import analyze_hotel_review_aspects
 from app.crud import create_classification, get_recent_classifications
 
 router = APIRouter(prefix="/api/reviews", tags=["Reviews"])
@@ -14,7 +15,7 @@ router = APIRouter(prefix="/api/reviews", tags=["Reviews"])
     response_model=ReviewClassifyResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Classify Hotel Review",
-    description="Predict sentiment (Positive/Negative) with confidence score using TF-IDF + Logistic Regression, and persist record to database.",
+    description="Predict sentiment with confidence score using TF-IDF + Logistic Regression, perform aspect-based analysis, and persist record to database.",
 )
 def classify_and_save_review(
     payload: ReviewClassifyRequest,
@@ -31,12 +32,16 @@ def classify_and_save_review(
         # Run ML model inference
         result = classify_review(review_text)
 
+        # Run aspect-based analysis
+        aspect_data = analyze_hotel_review_aspects(review_text, result["sentiment"])
+
         # Persist classification record to database
         saved_record = create_classification(
             db=db,
             review_text=review_text,
             sentiment=result["sentiment"],
             confidence=result["confidence"],
+            aspects_data=aspect_data,
         )
 
         return {
@@ -44,6 +49,14 @@ def classify_and_save_review(
             "review": saved_record.review_text,
             "sentiment": saved_record.sentiment,
             "confidence": saved_record.confidence,
+            "summary": aspect_data.get("summary"),
+            "aspects": aspect_data.get("aspects", []),
+            "positive_aspects": aspect_data.get("positive_aspects", []),
+            "negative_aspects": aspect_data.get("negative_aspects", []),
+            "neutral_aspects": aspect_data.get("neutral_aspects", []),
+            "positive_feedback": aspect_data.get("positive_feedback", []),
+            "negative_feedback": aspect_data.get("negative_feedback", []),
+            "management_insight": aspect_data.get("management_insight"),
             "created_at": saved_record.created_at.isoformat(),
         }
     except Exception as e:
