@@ -69,7 +69,9 @@ app.add_middleware(
 # 1. Health Endpoint
 # ----------------------------------------------------
 @app.get("/api/health", response_model=HealthResponse, tags=["Health"])
+@app.get("/api/health/", response_model=HealthResponse, include_in_schema=False)
 @app.get("/health", response_model=HealthResponse, include_in_schema=False)
+@app.get("/health/", response_model=HealthResponse, include_in_schema=False)
 def check_health():
     return {"status": "ok"}
 
@@ -214,6 +216,7 @@ def fetch_rating_distribution():
 
 
 @app.get("/api", tags=["Root"])
+@app.get("/api/", include_in_schema=False)
 def root_api():
     return {
         "message": "Hotel Review Classifier API on Vercel Serverless",
